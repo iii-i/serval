@@ -1,4 +1,4 @@
-#lang rosette
+#lang errortrace rosette
 
 (require
   "../lib/core.rkt")

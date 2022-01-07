@@ -1,4 +1,4 @@
-#lang racket/base
+#lang errortrace racket/base
 
 (require ffi/unsafe
          ffi/unsafe/alloc
@@ -18,7 +18,7 @@
 (define unicorn-lib
   (ffi-lib "libunicorn"
    #:get-lib-dirs (lambda () (append (get-lib-search-dirs)
-                                     (list "/usr/local/lib" "/usr/lib" "/opt/homebrew/lib")))))
+                                     (list "/home/spujb/myrepos/unicorn" "/usr/local/lib" "/usr/lib" "/opt/homebrew/lib")))))
 
 (define-ffi-definer define-unicorn unicorn-lib
   #:make-c-id convention:hyphen->underscore)
