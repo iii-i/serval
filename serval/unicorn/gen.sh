@@ -1,4 +1,7 @@
 #!/bin/sh
+set -e
+
+cd "$(dirname "$0")"
 
 ./const_generator.py python/unicorn_const.py \
 	--enum UC_ARCH \
@@ -21,3 +24,7 @@
 ./const_generator.py python/arm_const.py \
 	--enum UC_ARM_REG \
 	> const/arm.rkt
+
+./const_generator.py python/s390x_const.py \
+	--enum UC_S390X_REG \
+	> const/s390.rkt

@@ -9,6 +9,7 @@
          "unicorn/engine.rkt"
          "unicorn/arm.rkt"
          "unicorn/arm64.rkt"
+         "unicorn/s390.rkt"
          "unicorn/x86.rkt")
 
 (provide (except-out (all-defined-out)
@@ -26,6 +27,7 @@
   (case arch
     [(arm) arm-engine]
     [(arm64) arm64-engine]
+    [(s390x) s390-engine]
     [(x86) x86-engine]))
 
 (define-fun-syntax _uc_engine

@@ -12,7 +12,9 @@
            ppc = 5
            sparc = 6
            m68k = 7
-           max = 8)))
+           riscv = 8
+           s390x = 9
+           max = 10)))
 
 (define _uc_err
   (_enum '(ok = 0
@@ -65,6 +67,9 @@
            mem-write = 2048
            mem-fetch = 4096
            mem-read-after = 8192
+           insn-invalid = 16384
+           edge-generated = 32768
+           tcg-opcode = 65536
            mem-unmapped = 112
            mem-prot = 896
            mem-read-invalid = 144
@@ -80,6 +85,10 @@
               thumb = 16
               mclass = 32
               v8 = 64
+              armbe8 = 128
+              arm926 = 128
+              arm946 = 256
+              arm1176 = 512
               micro = 16
               mips3 = 32
               mips32r6 = 64
@@ -93,7 +102,9 @@
               qpx = 16
               sparc32 = 4
               sparc64 = 8
-              v9 = 16)))
+              v9 = 16
+              riscv32 = 4
+              riscv64 = 8)))
 
 (define _uc_prot
   (_bitmask '(none = 0

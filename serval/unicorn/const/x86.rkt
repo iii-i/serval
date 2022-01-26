@@ -32,7 +32,6 @@
            edx = 24
            eflags = 25
            eip = 26
-           eiz = 27
            es = 28
            esi = 29
            esp = 30
@@ -47,7 +46,6 @@
            rdi = 39
            rdx = 40
            rip = 41
-           riz = 42
            rsi = 43
            rsp = 44
            si = 45
@@ -60,17 +58,7 @@
            cr2 = 52
            cr3 = 53
            cr4 = 54
-           cr5 = 55
-           cr6 = 56
-           cr7 = 57
            cr8 = 58
-           cr9 = 59
-           cr10 = 60
-           cr11 = 61
-           cr12 = 62
-           cr13 = 63
-           cr14 = 64
-           cr15 = 65
            dr0 = 66
            dr1 = 67
            dr2 = 68
@@ -79,14 +67,6 @@
            dr5 = 71
            dr6 = 72
            dr7 = 73
-           dr8 = 74
-           dr9 = 75
-           dr10 = 76
-           dr11 = 77
-           dr12 = 78
-           dr13 = 79
-           dr14 = 80
-           dr15 = 81
            fp0 = 82
            fp1 = 83
            fp2 = 84
@@ -255,7 +235,16 @@
            fptag = 247
            msr = 248
            mxcsr = 249
-           ending = 250)))
+           fs-base = 250
+           gs-base = 251
+           flags = 252
+           rflags = 253
+           fip = 254
+           fcs = 255
+           fdp = 256
+           fds = 257
+           fop = 258
+           ending = 259)))
 
 (define _uc_x86_ins
   (_enum '(invalid = 0
