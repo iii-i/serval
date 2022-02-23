@@ -1,6 +1,6 @@
 #lang rosette
 
-; Flat memory model. Assumes Little endian.
+; Flat memory model.
 ; Memory is a single uninterpreted function from bv -> bv8
 
 (provide make-flat-memmgr (struct-out flat-memmgr))
@@ -15,9 +15,10 @@
   (define N (bitvector->natural size))
   (check-addr-off addr off)
   (for ([i (in-range N)])
+    (define j (if (flat-memmgr-big-endian memmgr) (- N 1 i) i))
     (define oldf (flat-memmgr-memory memmgr))
     (define newf (lambda (p)
-      (if (equal? p (bvadd addr off (bv i (type-of addr))))
+      (if (equal? p (bvadd addr off (bv j (type-of addr))))
         (extract (- (* 8 (+ i 1)) 1) (* 8 i) data)
         (oldf p))))
     (set-flat-memmgr-memory! memmgr newf)))
@@ -28,17 +29,17 @@
   (define Bytes (for/list ([i (in-range N)])
     ((flat-memmgr-memory memmgr) (bvadd addr off (bv i (type-of addr))))))
 
-  (apply concat (reverse Bytes)))
+  (apply concat (if (flat-memmgr-big-endian memmgr) Bytes (reverse Bytes))))
 
-(define (make-flat-memmgr #:bitwidth [bitwidth #f])
+(define (make-flat-memmgr #:bitwidth [bitwidth #f] #:big-endian [big-endian #f])
   (when (equal? bitwidth #f)
     (set! bitwidth (target-pointer-bitwidth)))
 
   (define-symbolic* memory (~> (bitvector (target-pointer-bitwidth))
                                (bitvector 8)))
-  (flat-memmgr memory bitwidth))
+  (flat-memmgr memory bitwidth big-endian))
 
-(struct flat-memmgr (memory bitwidth) #:transparent #:mutable
+(struct flat-memmgr (memory bitwidth big-endian) #:transparent #:mutable
   #:methods gen:memmgr
   [(define memmgr-load flat-memmgr-load)
    (define memmgr-store! flat-memmgr-store!)
