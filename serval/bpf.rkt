@@ -42,7 +42,7 @@
 (define (make-default-callmgr [calltable bpf-calls])
   (default-callmgr calltable))
 
-(struct cpu (pc regs fdtable tail-call-cnt memmgr callmgr) #:mutable #:transparent
+(struct cpu (pc regs fdtable tail-call-cnt memmgr callmgr big-endian) #:mutable #:transparent
   #:methods gen:custom-write
   [(define (write-proc cpu port mode)
      (define regs (cpu-regs cpu))
@@ -271,7 +271,8 @@
 (define (init-cpu [ctx #f]
                   [fdtable (vector)]
                   #:make-memmgr [make-memmgr core:make-flat-memmgr]
-                  #:make-callmgr [make-callmgr make-default-callmgr])
+                  #:make-callmgr [make-callmgr make-default-callmgr]
+                  #:big-endian [big-endian #f])
 
   ; initially regs are uninitialized and must be written before read
   (define regs (make-regs))
@@ -281,7 +282,7 @@
   (define-symbolic* stack (bitvector 64))
   (set-regs-r10! regs stack)
   (define-symbolic* tail-call-cnt (bitvector 32))
-  (cpu (bv 0 64) regs fdtable tail-call-cnt (make-memmgr) (make-callmgr)))
+  (cpu (bv 0 64) regs fdtable tail-call-cnt (make-memmgr) (make-callmgr) big-endian))
 
 (define (@reg-set! regs reg val)
   (case reg
@@ -427,6 +428,39 @@
     [((BPF_LD BPF_IMM BPF_DW)) (bv 2 64)]
     [else (bv 1 64)]))
 
+(define (interpret-bswap cpu dst imm)
+  (define old (reg-ref cpu dst))
+  (define new
+    (cond
+      [(equal? imm (bv 16 32))
+        (zero-extend
+          (concat (extract 7 0 old) (extract 15 8 old))
+          (bitvector 64))]
+      [(equal? imm (bv 32 32))
+        (zero-extend
+          (concat (extract 7 0 old) (extract 15 8 old) (extract 23 16 old) (extract 31 24 old))
+          (bitvector 64))]
+      [(equal? imm (bv 64 32))
+        (zero-extend
+          (concat (extract 7 0 old) (extract 15 8 old) (extract 23 16 old) (extract 31 24 old)
+                  (extract 39 32 old) (extract 47 40 old) (extract 55 48 old) (extract 63 56 old))
+          (bitvector 64))]
+      [else (core:bug #:msg (format "BPF_ALU: imm must be one of {16,32,64}, got ~v" imm))]))
+    (reg-set! cpu dst new))
+
+(define (interpret-zext cpu dst imm)
+  (define old (reg-ref cpu dst))
+  (define new
+    (cond
+      [(equal? imm (bv 16 32))
+        (zero-extend (extract 15 0 old) (bitvector 64))]
+      [(equal? imm (bv 32 32))
+        (zero-extend (extract 31 0 old) (bitvector 64))]
+      [(equal? imm (bv 64 32))
+        old]
+      [else (core:bug #:msg (format "BPF_ALU: imm must be one of {16,32,64}, got ~v" imm))]))
+  (reg-set! cpu dst new))
+
 ; Interpret an instruction.
 (define (interpret-insn cpu insn #:next [next-insn #f])
   (define code (insn-code insn))
@@ -558,37 +592,9 @@
 
     ; endian operations
     [(list 'BPF_ALU 'BPF_END 'BPF_FROM_BE)
-      (define old (reg-ref cpu dst))
-      (define new
-        (cond
-          [(equal? imm (bv 16 32))
-            (zero-extend
-              (concat (extract 7 0 old) (extract 15 8 old))
-              (bitvector 64))]
-          [(equal? imm (bv 32 32))
-            (zero-extend
-              (concat (extract 7 0 old) (extract 15 8 old) (extract 23 16 old) (extract 31 24 old))
-              (bitvector 64))]
-          [(equal? imm (bv 64 32))
-            (zero-extend
-              (concat (extract 7 0 old) (extract 15 8 old) (extract 23 16 old) (extract 31 24 old)
-                      (extract 39 32 old) (extract 47 40 old) (extract 55 48 old) (extract 63 56 old))
-              (bitvector 64))]
-          [else (core:bug #:msg (format "BPF_ALU: imm must be one of {16,32,64}, got ~v" imm))]))
-        (reg-set! cpu dst new)]
-
+     (if (cpu-big-endian cpu) (interpret-zext cpu dst imm) (interpret-bswap cpu dst imm))]
     [(list 'BPF_ALU 'BPF_END 'BPF_FROM_LE)
-      (define old (reg-ref cpu dst))
-      (define new
-        (cond
-          [(equal? imm (bv 16 32))
-            (zero-extend (extract 15 0 old) (bitvector 64))]
-          [(equal? imm (bv 32 32))
-            (zero-extend (extract 31 0 old) (bitvector 64))]
-          [(equal? imm (bv 64 32))
-            old]
-          [else (core:bug #:msg (format "BPF_ALU: imm must be one of {16,32,64}, got ~v" imm))]))
-      (reg-set! cpu dst new)]
+     (if (cpu-big-endian cpu) (interpret-bswap cpu dst imm) (interpret-zext cpu dst imm))]
 
     ; default
     [_ (core:bug #:msg (format "interpret-insn: no semantics for instruction ~e\n" code))])
